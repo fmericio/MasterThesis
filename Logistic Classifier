@@ -1,0 +1,61 @@
+#packages used
+import pandas as pd
+import numpy as np
+from collections import Counter
+from sklearn.linear_model import LogisticRegression
+from sklearn import preprocessing
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix, accuracy_score
+import matplotlib.pyplot as plt
+
+
+data = pd.read_csv('data.csv')
+print(data.head())
+
+def preprocessing_of_data(data, lable_col):
+    le = preprocessing.LabelEncoder()
+    le.fit(data['label'].unique())
+    print(le.classes_)
+    data['Target'] = le.transform(data['label'])
+    return data
+
+
+data = preprocessing_of_data(data, 'label')
+print(Counter(data['Target']))
+
+X = data.iloc[:, :-2]
+feature_columns = X.columns
+y = data.iloc[:, -1]
+
+X_train, X_test, y_train, y_test = train_test_split(
+     X, y, test_size=0.33, random_state=42)
+
+def model(X_train, X_test, y_train, y_test, max_iter=1000):
+    clf = LogisticRegression(random_state=0, max_iter=max_iter)
+    clf = clf.fit(X_train, y_train)
+
+    y_pred = clf.predict(X_test)
+    print(confusion_matrix(y_pred, y_test))
+    y_train_pred = clf.predict(X_train)
+    print('Training Accuracy:{}'.format(accuracy_score(y_train, y_train_pred)))
+    print('Testing Accuracy:{}'.format(accuracy_score(y_test, y_pred)))
+    return clf
+
+clf = model(X_train, X_test, y_train, y_test, max_iter=500)
+
+# get importance
+importance = clf.coef_[0]
+# summarize feature importance
+for i,v in enumerate(importance):
+    print('Feature: %0d, Name:%s, Score: %.5f' % (i, feature_columns[i], v))
+
+# plot feature importance
+plt.bar([x for x in range(len(importance))], importance)
+locs, labels = plt.xticks()
+plt.xticks(np.arange(len(feature_columns)), feature_columns)
+plt.xticks(rotation=90)
+fig = plt.gcf()
+fig.set_size_inches(18.5, 10.5)
+fig.savefig('featureimportance.png', dpi=200)
+plt.show()
+
